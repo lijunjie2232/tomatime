@@ -39,7 +39,7 @@
 | SIGNING_KEY_PASSWORD | 密钥密码 | 123456 |
 | SIGNING_STORE_PASSWORD | keystore 密码 | 123456 |
 
-#### 生成 keystore 并转换为 Base64
+### 生成 keystore 并转换为 Base64
 
 如果您还没有 keystore 文件，可以使用以下命令创建一个：
 
