@@ -24,13 +24,6 @@
 
 在专注模式下，点击时间显示区域可以打开设置面板，自定义专注时间长度。
 
-## 技术实现
-
-- 使用 Kotlin 编写
-- 基于 Jetpack Compose 的现代 Android UI 框架
-- 采用 MVVM 架构模式
-- 使用 ViewModel 管理 UI 状态
-
 ## 构建与发布
 
 本项目使用 GitHub Actions 自动化构建和发布：
