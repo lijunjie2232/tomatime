@@ -16,7 +16,6 @@ class TimerViewModel : ViewModel() {
     }
 
     private val _pomodoroTime = MutableStateFlow(DEFAULT_POMODORO_TIME)
-    
     private val _timeLeft = MutableStateFlow(DEFAULT_POMODORO_TIME)
     val timeLeft: StateFlow<Long> = _timeLeft.asStateFlow()
 
@@ -45,7 +44,6 @@ class TimerViewModel : ViewModel() {
                 }
                 if (_timeLeft.value <= 0) {
                     _isRunning.value = false
-                    // 可以在这里添加完成提示音或通知
                 }
             }
         }

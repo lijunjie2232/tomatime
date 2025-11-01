@@ -1,18 +1,9 @@
 package jp.li.tomatime
 
-import android.Manifest
-import android.app.PendingIntent
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -55,173 +46,24 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.app.NotificationChannelCompat
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import jp.li.tomatime.ui.theme.TomatimeTheme
 import kotlin.math.floor
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-    private lateinit var notificationManager: NotificationManagerCompat
-    private var viewModel: TimerViewModel? = null
-    
-    companion object {
-        private const val CHANNEL_ID = "timer_channel"
-        private const val NOTIFICATION_ID = 1
-        const val ACTION_PAUSE_CONTINUE = "jp.li.tomatime.ACTION_PAUSE_CONTINUE"
-        const val ACTION_STOP = "jp.li.tomatime.ACTION_STOP"
-    }
-    
-    private val timerReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            when (intent.action) {
-                ACTION_PAUSE_CONTINUE -> {
-                    // 处理暂停/继续操作
-                    viewModel?.let { vm ->
-                        if (vm.isRunning.value) {
-                            vm.pauseTimer()
-                        } else {
-                            vm.startTimer()
-                        }
-                    }
-                }
-                ACTION_STOP -> {
-                    // 处理停止操作
-                    viewModel?.resetTimer()
-                }
-            }
-        }
-    }
-    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // 注册广播接收器
-        registerReceiver(timerReceiver, IntentFilter().apply {
-            addAction(ACTION_PAUSE_CONTINUE)
-            addAction(ACTION_STOP)
-        })
-        
-        // 创建通知渠道
-        createNotificationChannel()
-        notificationManager = NotificationManagerCompat.from(this)
-        
-        // 请求通知权限（Android 13+）
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        }
-        
         enableEdgeToEdge()
         setContent {
             TomatimeTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    val timerViewModel = viewModel<TimerViewModel>()
-                    viewModel = timerViewModel
-                    
                     PomodoroTimer(
-                        viewModel = timerViewModel,
-                        modifier = Modifier.padding(innerPadding),
-                        onTimerStateChanged = { isRunning, timeLeft, timerState ->
-                            updateNotification(isRunning, timeLeft, timerState)
-                        }
+                        modifier = Modifier.padding(innerPadding)
                     )
                 }
             }
         }
-    }
-    
-    override fun onDestroy() {
-        super.onDestroy()
-        unregisterReceiver(timerReceiver)
-        // 清除通知
-        notificationManager.cancel(NOTIFICATION_ID)
-    }
-    
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        // 权限请求结果处理
-    }
-    
-    private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannelCompat.Builder(CHANNEL_ID, NotificationManagerCompat.IMPORTANCE_LOW)
-                .setName("计时器通知")
-                .setDescription("显示当前计时状态")
-                .build()
-            notificationManager.createNotificationChannel(channel)
-        }
-    }
-    
-    private fun updateNotification(isRunning: Boolean, timeLeft: Long, timerState: TimerState) {
-        val stateText = when (timerState) {
-            TimerState.POMODORO -> "专注中"
-            TimerState.SHORT_BREAK -> "短休息中"
-            TimerState.LONG_BREAK -> "长休息中"
-        }
-        
-        val actionText = if (isRunning) "暂停" else "继续"
-        
-        // 创建暂停/继续操作的 PendingIntent
-        val pauseContinueIntent = Intent(this, timerReceiver.javaClass).apply {
-            action = ACTION_PAUSE_CONTINUE
-        }
-        val pauseContinuePendingIntent = PendingIntent.getBroadcast(
-            this,
-            0,
-            pauseContinueIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        
-        // 创建停止操作的 PendingIntent
-        val stopIntent = Intent(this, timerReceiver.javaClass).apply {
-            action = ACTION_STOP
-        }
-        val stopPendingIntent = PendingIntent.getBroadcast(
-            this,
-            0,
-            stopIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("番茄时钟")
-            .setContentText("$stateText - ${formatTime(timeLeft)}")
-            .setSmallIcon(android.R.drawable.ic_media_play) // 使用系统默认图标
-            .setOngoing(true)
-            .addAction(
-                0,
-                actionText,
-                pauseContinuePendingIntent
-            )
-            .addAction(
-                0,
-                "停止",
-                stopPendingIntent
-            )
-            .build()
-        
-        // 检查权限后再显示通知
-        if (checkNotificationPermission()) {
-            notificationManager.notify(NOTIFICATION_ID, notification)
-        }
-    }
-    
-    private fun checkNotificationPermission(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-        } else {
-            true
-        }
-    }
-    
-    private fun formatTime(timeInMillis: Long): String {
-        val totalSeconds = timeInMillis / 1000
-        val minutes = floor(totalSeconds / 60f).toInt()
-        val seconds = (totalSeconds % 60).toInt()
-        return String.format("%02d:%02d", minutes, seconds)
     }
 }
 
@@ -229,18 +71,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun PomodoroTimer(
     viewModel: TimerViewModel = viewModel(),
-    modifier: Modifier = Modifier,
-    onTimerStateChanged: (Boolean, Long, TimerState) -> Unit = { _, _, _ -> }
+    modifier: Modifier = Modifier
 ) {
     val timeLeft by viewModel.timeLeft.collectAsState()
     val isRunning by viewModel.isRunning.collectAsState()
     val timerState by viewModel.timerState.collectAsState()
     var showSettings by remember { mutableStateOf(false) }
-    
-    // 当计时器状态改变时通知 MainActivity
-    LaunchedEffect(isRunning, timeLeft, timerState) {
-        onTimerStateChanged(isRunning, timeLeft, timerState)
-    }
 
     if (showSettings) {
         PomodoroSettings(
@@ -520,12 +356,10 @@ fun formatTime(timeInMillis: Long): String {
 // 添加无波纹效果的可点击修饰符
 @Composable
 fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier {
-    return this.then(
-        clickable(
-            indication = null,
-            interactionSource = remember { MutableInteractionSource() }
-        ) { onClick() }
-    )
+    return this.clickable(
+        indication = null,
+        interactionSource = remember { MutableInteractionSource() }
+    ) { onClick() }
 }
 
 @Preview(showBackground = true)
