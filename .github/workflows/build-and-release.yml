@@ -6,11 +6,9 @@ on:
       version_name:
         description: 'Version name (e.g., 1.0.0)'
         required: true
-        type: string
       version_code:
         description: 'Version code (e.g., 1)'
         required: true
-        type: string
       is_prerelease:
         description: 'Is this a pre-release?'
         required: false
