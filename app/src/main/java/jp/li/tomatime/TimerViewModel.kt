@@ -26,12 +26,15 @@ class TimerViewModel : ViewModel() {
     val timerState: StateFlow<TimerState> = _timerState.asStateFlow()
 
     private var timerJob: kotlinx.coroutines.Job? = null
+    var notificationService: NotificationService? = null
 
     fun setPomodoroTime(timeInMillis: Long) {
         _pomodoroTime.value = timeInMillis
         if (_timerState.value == TimerState.POMODORO) {
             _timeLeft.value = timeInMillis
         }
+        // 更新通知
+        notificationService?.showTimerNotification(_timeLeft.value, _isRunning.value)
     }
 
     fun startTimer() {
@@ -41,9 +44,13 @@ class TimerViewModel : ViewModel() {
                 while (_timeLeft.value > 0 && _isRunning.value) {
                     delay(1000)
                     _timeLeft.value -= 1000
+                    // 更新通知
+                    notificationService?.showTimerNotification(_timeLeft.value, _isRunning.value)
                 }
                 if (_timeLeft.value <= 0) {
                     _isRunning.value = false
+                    // 显示完成通知
+                    notificationService?.showCompletedNotification()
                 }
             }
         }
@@ -52,29 +59,39 @@ class TimerViewModel : ViewModel() {
     fun pauseTimer() {
         _isRunning.value = false
         timerJob?.cancel()
+        // 更新通知
+        notificationService?.showTimerNotification(_timeLeft.value, _isRunning.value)
     }
 
     fun resetTimer() {
         pauseTimer()
         _timeLeft.value = getCurrentTimerDuration()
+        // 更新通知
+        notificationService?.showTimerNotification(_timeLeft.value, _isRunning.value)
     }
 
     fun switchToPomodoro() {
         pauseTimer()
         _timerState.value = TimerState.POMODORO
         _timeLeft.value = _pomodoroTime.value
+        // 更新通知
+        notificationService?.showTimerNotification(_timeLeft.value, _isRunning.value)
     }
 
     fun switchToShortBreak() {
         pauseTimer()
         _timerState.value = TimerState.SHORT_BREAK
         _timeLeft.value = SHORT_BREAK_TIME
+        // 更新通知
+        notificationService?.showTimerNotification(_timeLeft.value, _isRunning.value)
     }
 
     fun switchToLongBreak() {
         pauseTimer()
         _timerState.value = TimerState.LONG_BREAK
         _timeLeft.value = LONG_BREAK_TIME
+        // 更新通知
+        notificationService?.showTimerNotification(_timeLeft.value, _isRunning.value)
     }
 
     private fun getCurrentTimerDuration(): Long {
