@@ -1,0 +1,87 @@
+name: Build and Pre-release
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.SIGNING_KEYSTORE }}" | base64 --decode > app/release.keystore
+
+      - name: Build with Gradle
+        run: ./gradlew build
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: app/build/outputs/apk/release/app-release.apk
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: app-release
+
+      - name: Create Pre-release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "app-release.apk"
+          tag: v1.0-${{ github.run_number }}
+          name: Pre-release v1.0-${{ github.run_number }}
+          draft: false
+          prerelease: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            # Tomato Timer Pre-release
+            
+            This is an automated pre-release build of the Tomato Timer app.
+            
+            ## Changes
+            - Built from commit: ${{ github.sha }}
+            - Build number: ${{ github.run_number }}
+            
+            ## Installation
+            Download the APK file and install it on your Android device.
