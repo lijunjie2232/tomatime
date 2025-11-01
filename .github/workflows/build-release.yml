@@ -37,12 +37,10 @@ jobs:
       - name: Decode keystore
         run: |
           echo "${{ secrets.SIGNING_KEYSTORE }}" | base64 --decode > app/release.keystore
-
       - name: Update version in build.gradle
         run: |
           sed -i "s/versionName = \".*\"/versionName = \"${{ inputs.version_name }}\"/g" app/build.gradle.kts
           sed -i "s/versionCode = .*/versionCode = ${{ inputs.version_code }}/g" app/build.gradle.kts
-
       - name: Build with Gradle
         run: ./gradlew build
 
