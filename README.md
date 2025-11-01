@@ -24,13 +24,7 @@
 
 在专注模式下，点击时间显示区域可以打开设置面板，自定义专注时间长度。
 
-## 构建与发布
-
-本项目使用 GitHub Actions 自动化构建和发布：
-- 每次推送到 main 分支时自动构建
-- 自动生成预发布版本
-
-### 配置 GitHub Secrets（用于签名 APK）
+## 配置 GitHub Secrets（用于签名 APK）
 
 为了安全地签名发布版本的 APK，您需要在 GitHub 仓库中配置以下 Secrets：
 
