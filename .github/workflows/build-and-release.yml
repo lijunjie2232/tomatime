@@ -1,4 +1,21 @@
-name: Build and Pre-release
+name: Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Version name (e.g., 1.0.0)'
+        required: true
+        type: string
+      version_code:
+        description: 'Version code (e.g., 1)'
+        required: true
+        type: string
+      is_prerelease:
+        description: 'Is this a pre-release?'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   build:
@@ -22,6 +39,11 @@ jobs:
       - name: Decode keystore
         run: |
           echo "${{ secrets.SIGNING_KEYSTORE }}" | base64 --decode > app/release.keystore
+
+      - name: Update version in build.gradle
+        run: |
+          sed -i "s/versionName = \".*\"/versionName = \"${{ inputs.version_name }}\"/g" app/build.gradle.kts
+          sed -i "s/versionCode = .*/versionCode = ${{ inputs.version_code }}/g" app/build.gradle.kts
 
       - name: Build with Gradle
         run: ./gradlew build
@@ -47,7 +69,6 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -57,23 +78,26 @@ jobs:
         with:
           name: app-release
 
-      - name: Create Pre-release
+      - name: Create Release
         uses: ncipollo/release-action@v1
         with:
           artifacts: "app-release.apk"
-          tag: v1.0-${{ github.run_number }}
-          name: Pre-release v1.0-${{ github.run_number }}
+          tag: v${{ inputs.version_name }}
+          name: Release v${{ inputs.version_name }}
           draft: false
-          prerelease: true
+          prerelease: ${{ inputs.is_prerelease }}
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
-            # Tomato Timer Pre-release
+            # Tomato Timer Release v${{ inputs.version_name }}
             
-            This is an automated pre-release build of the Tomato Timer app.
+            This is an automated release build of the Tomato Timer app.
             
-            ## Changes
+            ## Build Information
+            - Version: ${{ inputs.version_name }}
+            - Build Code: ${{ inputs.version_code }}
             - Built from commit: ${{ github.sha }}
             - Build number: ${{ github.run_number }}
+            - Pre-release: ${{ inputs.is_prerelease }}
             
             ## Installation
             Download the APK file and install it on your Android device.
