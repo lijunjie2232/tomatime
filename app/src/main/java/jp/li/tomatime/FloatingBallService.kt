@@ -10,15 +10,13 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import android.widget.TextView
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
+import jp.li.tomatime.FloatingBallView
 import kotlin.math.floor
 
 class FloatingBallService : Service() {
     private var windowManager: WindowManager? = null
-    private var floatingBallView: View? = null
-    private var textView: TextView? = null
+    private var floatingBallView: FloatingBallView? = null
+    private var layout: View? = null
     private var params: WindowManager.LayoutParams? = null
 
     override fun onBind(intent: Intent): IBinder? {
@@ -41,8 +39,8 @@ class FloatingBallService : Service() {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
         // 创建悬浮球视图
-        floatingBallView = LayoutInflater.from(this).inflate(R.layout.floating_ball, null)
-        textView = floatingBallView?.findViewById(R.id.floating_ball_text)
+        layout = LayoutInflater.from(this).inflate(R.layout.floating_ball, null)
+        floatingBallView = layout?.findViewById(R.id.floating_ball_view)
 
         // 设置悬浮球参数
         params = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -69,7 +67,7 @@ class FloatingBallService : Service() {
 
         // 添加悬浮球到窗口
         try {
-            windowManager?.addView(floatingBallView, params)
+            windowManager?.addView(layout, params)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -81,7 +79,7 @@ class FloatingBallService : Service() {
         var firstX = 0
         var firstY = 0
 
-        floatingBallView?.setOnTouchListener { _, event ->
+        layout?.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     isMoving = false
@@ -95,7 +93,7 @@ class FloatingBallService : Service() {
                     val dy = event.rawY.toInt() - lastY
                     params?.x = params?.x?.plus(dx) ?: 0
                     params?.y = params?.y?.plus(dy) ?: 0
-                    windowManager?.updateViewLayout(floatingBallView, params)
+                    windowManager?.updateViewLayout(layout, params)
 
                     lastX = event.rawX.toInt()
                     lastY = event.rawY.toInt()
@@ -120,16 +118,10 @@ class FloatingBallService : Service() {
 
     private fun updateFloatingBall(timeLeft: Long, isRunning: Boolean) {
         // 更新时间显示
-        textView?.text = formatTime(timeLeft)
+        floatingBallView?.setTime(formatTime(timeLeft))
         
-        // 根据运行状态改变颜色
-        val backgroundColor = if (isRunning) {
-            Color(0xFF4CAF50) // 绿色表示运行中
-        } else {
-            Color(0xFFFF9800) // 橙色表示暂停
-        }
-        
-        floatingBallView?.setBackgroundColor(backgroundColor.toArgb())
+        // 更新运行状态
+        floatingBallView?.setState(isRunning)
     }
 
     private fun formatTime(timeInMillis: Long): String {
@@ -141,8 +133,10 @@ class FloatingBallService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (floatingBallView != null) {
-            windowManager?.removeView(floatingBallView)
+        try {
+            layout?.let { windowManager?.removeView(it) }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }
