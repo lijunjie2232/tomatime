@@ -66,8 +66,8 @@ class TimerViewModel : ViewModel() {
     fun resetTimer() {
         pauseTimer()
         _timeLeft.value = getCurrentTimerDuration()
-        // 更新通知
-        notificationService?.showTimerNotification(_timeLeft.value, _isRunning.value)
+        // 更新通知为准备就绪状态
+        notificationService?.showReadyNotification()
     }
 
     fun switchToPomodoro() {

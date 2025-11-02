@@ -37,8 +37,8 @@ class NotificationService(private val context: Context) {
 
     fun showTimerNotification(timeLeft: Long, isRunning: Boolean) {
         val formattedTime = formatTime(timeLeft)
-        val title = if (isRunning) "计时进行中..." else "计时器"
-        val content = if (isRunning) "剩余时间: $formattedTime" else "计时器已暂停"
+        val title = if (isRunning) "计时进行中..." else "计时器已暂停"
+        val content = "剩余时间: $formattedTime"
 
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -76,6 +76,28 @@ class NotificationService(private val context: Context) {
             .setContentTitle("计时完成!")
             .setContentText("番茄钟时间已结束")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+
+        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+    }
+
+    fun showReadyNotification() {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            context, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("计时器已准备就绪")
+            .setContentText("可以开始新的专注")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .build()

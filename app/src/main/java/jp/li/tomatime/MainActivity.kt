@@ -112,7 +112,7 @@ fun PomodoroTimer(
         // 初始化通知服务
         viewModel.notificationService = NotificationService(context)
         // 显示初始通知
-        viewModel.notificationService?.showTimerNotification(timeLeft, isRunning)
+        viewModel.notificationService?.showReadyNotification()
     }
 
     if (showSettings) {
