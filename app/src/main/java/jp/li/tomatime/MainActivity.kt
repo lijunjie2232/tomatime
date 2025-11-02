@@ -319,7 +319,7 @@ fun PomodoroTimer(
             Button(
                 onClick = { if (isRunning) viewModel.pauseTimer() else viewModel.startTimer() },
                 shape = CircleShape,
-                modifier = Modifier.size(92.dp),
+                modifier = Modifier.size(128.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isRunning) Color(0xFFE57373) else MaterialTheme.colorScheme.primary
                 )
@@ -330,7 +330,7 @@ fun PomodoroTimer(
             Button(
                 onClick = { viewModel.resetTimer() },
                 shape = CircleShape,
-                modifier = Modifier.size(92.dp)
+                modifier = Modifier.size(128.dp)
             ) {
                 Text(context.getString(R.string.reset))
             }
