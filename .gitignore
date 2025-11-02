@@ -46,3 +46,4 @@ replay_pid*
 app/debug
 app/release
 app/ico
+app/*.jks
