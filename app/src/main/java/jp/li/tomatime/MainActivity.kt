@@ -1,9 +1,15 @@
 package jp.li.tomatime
 
 import android.Manifest
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -59,20 +65,33 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     companion object {
         private const val NOTIFICATION_PERMISSION_REQUEST_CODE = 1001
+        private const val OVERLAY_PERMISSION_REQUEST_CODE = 1002
     }
+    
+    private lateinit var viewModel: TimerViewModel
+    private var floatingBallReceiver: BroadcastReceiver? = null
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
+        viewModel = TimerViewModel()
+        
         // 请求通知权限
         requestNotificationPermission()
+        
+        // 请求悬浮球权限
+        requestOverlayPermission()
+        
+        // 注册悬浮球点击广播接收器
+        registerFloatingBallReceiver()
         
         setContent {
             TomatimeTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     PomodoroTimer(
-                        modifier = Modifier.padding(innerPadding)
+                        modifier = Modifier.padding(innerPadding),
+                        viewModel = viewModel
                     )
                 }
             }
@@ -90,6 +109,76 @@ class MainActivity : ComponentActivity() {
                     arrayOf(Manifest.permission.POST_NOTIFICATIONS),
                     NOTIFICATION_PERMISSION_REQUEST_CODE
                 )
+            }
+        }
+    }
+    
+    private fun requestOverlayPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!Settings.canDrawOverlays(this)) {
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName")
+                )
+                startActivityForResult(intent, OVERLAY_PERMISSION_REQUEST_CODE)
+            }
+        }
+    }
+    
+    private fun registerFloatingBallReceiver() {
+        floatingBallReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                when (intent?.action) {
+                    "jp.li.tomatime.FLOATING_BALL_CLICKED" -> {
+                        // 处理悬浮球点击事件
+                        handleFloatingBallClick()
+                    }
+                }
+            }
+        }
+        
+        val filter = IntentFilter("jp.li.tomatime.FLOATING_BALL_CLICKED")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(floatingBallReceiver, filter, RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(floatingBallReceiver, filter)
+        }
+    }
+    
+    private fun handleFloatingBallClick() {
+        // 根据当前状态执行相应操作
+        if (viewModel.isRunning.value) {
+            // 如果正在运行，则暂停
+            viewModel.pauseTimer()
+        } else {
+            // 如果已暂停，则检查剩余时间
+            if (viewModel.timeLeft.value > 0) {
+                // 如果还有剩余时间，则开始
+                viewModel.startTimer()
+            } else {
+                // 如果时间已到，则重置
+                viewModel.resetTimer()
+            }
+        }
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        floatingBallReceiver?.let {
+            unregisterReceiver(it)
+        }
+    }
+    
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        when (requestCode) {
+            OVERLAY_PERMISSION_REQUEST_CODE -> {
+                // 用户从悬浮窗权限设置返回
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    if (Settings.canDrawOverlays(this)) {
+                        // 已获得权限
+                    }
+                }
             }
         }
     }
@@ -113,6 +202,20 @@ fun PomodoroTimer(
         viewModel.notificationService = NotificationService(context)
         // 显示初始通知
         viewModel.notificationService?.showReadyNotification()
+        
+        // 启动悬浮球服务
+        val serviceIntent = Intent(context, FloatingBallService::class.java)
+        serviceIntent.putExtra("timeLeft", timeLeft)
+        serviceIntent.putExtra("isRunning", isRunning)
+        ContextCompat.startForegroundService(context, serviceIntent)
+    }
+    
+    // 当时间或运行状态改变时更新悬浮球
+    LaunchedEffect(timeLeft, isRunning) {
+        val serviceIntent = Intent(context, FloatingBallService::class.java)
+        serviceIntent.putExtra("timeLeft", timeLeft)
+        serviceIntent.putExtra("isRunning", isRunning)
+        context.startService(serviceIntent)
     }
 
     if (showSettings) {
