@@ -1,5 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">tomatime</string>
+    <string name="app_name">番茄时间</string>
     <string name="focus_time">专注时间</string>
     <string name="short_break">短休息</string>
     <string name="long_break">长休息</string>

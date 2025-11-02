@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">トマトタイム</string>
+    <string name="focus_time">集中時間</string>
+    <string name="short_break">短い休憩</string>
+    <string name="long_break">長い休憩</string>
+    <string name="pause">一時停止</string>
+    <string name="start">開始</string>
+    <string name="reset">リセット</string>
+    <string name="focus">集中</string>
+    <string name="short_break_button">短い休憩</string>
+    <string name="long_break_button">長い休憩</string>
+    <string name="focus_time_settings">集中時間設定</string>
+    <string name="minutes">分</string>
+    <string name="seconds">秒</string>
+    <string name="cancel">キャンセル</string>
+    <string name="save">保存</string>
+    <string name="overlay_permission_required">オーバーレイ権限を付与してください</string>
+    <string name="notification_permission_granted">通知権限が付与されました</string>
+</resources>

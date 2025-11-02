@@ -80,6 +80,7 @@ class MainActivity : ComponentActivity() {
         when (requestCode) {
             NOTIFICATION_PERMISSION_REQUEST_CODE -> {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // Notification permission granted
                     // 通知权限被授予
                 }
             }
@@ -161,6 +162,7 @@ class MainActivity : ComponentActivity() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 when (intent?.action) {
                     "jp.li.tomatime.FLOATING_BALL_CLICKED" -> {
+                        // Handle floating ball click event
                         // 处理悬浮球点击事件
                         handleFloatingBallClick()
                     }
@@ -178,16 +180,21 @@ class MainActivity : ComponentActivity() {
 
     private fun handleFloatingBallClick() {
         // 根据当前状态执行相应操作
+        // Perform corresponding action based on current state
         if (viewModel.isRunning.value) {
             // 如果正在运行，则暂停
+            // If running, then pause
             viewModel.pauseTimer()
         } else {
             // 如果已暂停，则检查剩余时间
+            // If paused, check remaining time
             if (viewModel.timeLeft.value > 0) {
                 // 如果还有剩余时间，则开始
+                // If there is time left, then start
                 viewModel.startTimer()
             } else {
                 // 如果时间已到，则重置
+                // If time is up, then reset
                 viewModel.resetTimer()
             }
         }
@@ -204,13 +211,16 @@ class MainActivity : ComponentActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         when (requestCode) {
             OVERLAY_PERMISSION_REQUEST_CODE -> {
+                // Handle overlay permission result
                 // 用户从悬浮窗权限设置返回
 //                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 if (Settings.canDrawOverlays(this)) {
+                    // Permission granted
                     // 已获得权限
                 } else {
+                    // Permission not granted
                     // 未获得权限
-                    Toast.makeText(this, "请授予悬浮窗权限", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.overlay_permission_required, Toast.LENGTH_SHORT).show()
                     val intent = Intent(
                         Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                         "package:$packageName".toUri()
@@ -234,7 +244,6 @@ fun PomodoroTimer(
     val isRunning by viewModel.isRunning.collectAsState()
     val timerState by viewModel.timerState.collectAsState()
     var showSettings by remember { mutableStateOf(false) }
-
     val context = LocalContext.current
 
     LaunchedEffect(Unit) {
@@ -281,9 +290,9 @@ fun PomodoroTimer(
         // 显示当前状态
         Text(
             text = when (timerState) {
-                TimerState.POMODORO -> "专注时间"
-                TimerState.SHORT_BREAK -> "短休息"
-                TimerState.LONG_BREAK -> "长休息"
+                TimerState.POMODORO -> context.getString(R.string.focus_time)
+                TimerState.SHORT_BREAK -> context.getString(R.string.short_break)
+                TimerState.LONG_BREAK -> context.getString(R.string.long_break)
             },
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.primary
@@ -310,20 +319,20 @@ fun PomodoroTimer(
             Button(
                 onClick = { if (isRunning) viewModel.pauseTimer() else viewModel.startTimer() },
                 shape = CircleShape,
-                modifier = Modifier.size(80.dp),
+                modifier = Modifier.size(92.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isRunning) Color(0xFFE57373) else MaterialTheme.colorScheme.primary
                 )
             ) {
-                Text(if (isRunning) "暂停" else "开始")
+                Text(if (isRunning) context.getString(R.string.pause) else context.getString(R.string.start))
             }
 
             Button(
                 onClick = { viewModel.resetTimer() },
                 shape = CircleShape,
-                modifier = Modifier.size(80.dp)
+                modifier = Modifier.size(92.dp)
             ) {
-                Text("重置")
+                Text(context.getString(R.string.reset))
             }
         }
 
@@ -339,7 +348,7 @@ fun PomodoroTimer(
                         MaterialTheme.colorScheme.secondary
                 )
             ) {
-                Text("专注")
+                Text(context.getString(R.string.focus))
             }
 
             Button(
@@ -350,7 +359,7 @@ fun PomodoroTimer(
                         MaterialTheme.colorScheme.secondary
                 )
             ) {
-                Text("短休息")
+                Text(context.getString(R.string.short_break_button))
             }
 
             Button(
@@ -361,7 +370,7 @@ fun PomodoroTimer(
                         MaterialTheme.colorScheme.secondary
                 )
             ) {
-                Text("长休息")
+                Text(context.getString(R.string.long_break_button))
             }
         }
     }
@@ -376,6 +385,7 @@ fun PomodoroSettings(
     currentPomodoroTime: Long
 ) {
     val sheetState = rememberModalBottomSheetState()
+    val context = LocalContext.current
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -396,7 +406,7 @@ fun PomodoroSettings(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "专注时间设置",
+                text = context.getString(R.string.focus_time_settings),
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(bottom = 32.dp)
             )
@@ -417,7 +427,7 @@ fun PomodoroSettings(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("分钟", modifier = Modifier.padding(bottom = 8.dp))
+                    Text(context.getString(R.string.minutes), modifier = Modifier.padding(bottom = 8.dp))
                     NumberPicker(
                         value = minutes,
                         onValueChange = { minutes = it },
@@ -430,7 +440,7 @@ fun PomodoroSettings(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("秒钟", modifier = Modifier.padding(bottom = 8.dp))
+                    Text(context.getString(R.string.seconds), modifier = Modifier.padding(bottom = 8.dp))
                     NumberPicker(
                         value = seconds,
                         onValueChange = { seconds = it },
@@ -444,11 +454,11 @@ fun PomodoroSettings(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 Button(onClick = onDismiss) {
-                    Text("取消")
+                    Text(context.getString(R.string.cancel))
                 }
 
                 Button(onClick = { onSave(minutes, seconds) }) {
-                    Text("保存")
+                    Text(context.getString(R.string.save))
                 }
             }
         }

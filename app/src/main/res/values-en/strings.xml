@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Tomato Time</string>
+    <string name="focus_time">Focus Time</string>
+    <string name="short_break">Short Break</string>
+    <string name="long_break">Long Break</string>
+    <string name="pause">Pause</string>
+    <string name="start">Start</string>
+    <string name="reset">Reset</string>
+    <string name="focus">Focus</string>
+    <string name="short_break_button">Short Break</string>
+    <string name="long_break_button">Long Break</string>
+    <string name="focus_time_settings">Focus Time Settings</string>
+    <string name="minutes">Minutes</string>
+    <string name="seconds">Seconds</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="overlay_permission_required">Please grant overlay permission</string>
+    <string name="notification_permission_granted">Notification permission granted</string>
+</resources>

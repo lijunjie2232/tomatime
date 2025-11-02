@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Tiempo de Tomate</string>
+    <string name="focus_time">Tiempo de Enfoque</string>
+    <string name="short_break">Descanso Corto</string>
+    <string name="long_break">Descanso Largo</string>
+    <string name="pause">Pausa</string>
+    <string name="start">Inicio</string>
+    <string name="reset">Reiniciar</string>
+    <string name="focus">Enfoque</string>
+    <string name="short_break_button">Descanso Corto</string>
+    <string name="long_break_button">Descanso Largo</string>
+    <string name="focus_time_settings">Configuración del Tiempo de Enfoque</string>
+    <string name="minutes">Minutos</string>
+    <string name="seconds">Segundos</string>
+    <string name="cancel">Cancelar</string>
+    <string name="save">Guardar</string>
+    <string name="overlay_permission_required">Por favor, otorgue permiso de sobreposición</string>
+    <string name="notification_permission_granted">Permiso de notificación concedido</string>
+</resources>
