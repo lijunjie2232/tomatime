@@ -9,6 +9,7 @@ import android.graphics.Shader
 import android.util.AttributeSet
 import android.view.View
 import kotlin.math.min
+import androidx.core.graphics.toColorInt
 
 class FloatingBallView @JvmOverloads constructor(
     context: Context,
@@ -19,6 +20,7 @@ class FloatingBallView @JvmOverloads constructor(
     private var ballPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var textPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var gradientPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private var borderPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     
     private var radius = 0f
     private var centerX = 0f
@@ -31,6 +33,10 @@ class FloatingBallView @JvmOverloads constructor(
         textPaint.color = Color.WHITE
         textPaint.textAlign = Paint.Align.CENTER
         textPaint.isFakeBoldText = true
+        
+        borderPaint.style = Paint.Style.STROKE
+        borderPaint.strokeWidth = 4f
+        borderPaint.color = Color.WHITE
     }
     
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -49,16 +55,16 @@ class FloatingBallView @JvmOverloads constructor(
         val colors = if (isRunning) {
             // 运行状态：加深的绿色渐变
             intArrayOf(
-                Color.parseColor("#2E7D32"), // 中心颜色 - 更深的绿色
-                Color.parseColor("#4CAF50"), // 中间颜色 - 标准绿色
-                Color.parseColor("#81C784")  // 边缘颜色 - 浅绿色
+                "#2E7D32".toColorInt(), // 中心颜色 - 更深的绿色
+                "#4CAF50".toColorInt(), // 中间颜色 - 标准绿色
+                "#81C784".toColorInt()  // 边缘颜色 - 浅绿色
             )
         } else {
             // 暂停状态：加深的橙色渐变
             intArrayOf(
-                Color.parseColor("#EF6C00"), // 中心颜色 - 更深的橙色
-                Color.parseColor("#FF9800"), // 中间颜色 - 标准橙色
-                Color.parseColor("#FFB74D")  // 边缘颜色 - 浅橙色
+                "#EF6C00".toColorInt(), // 中心颜色 - 更深的橙色
+                "#FF9800".toColorInt(), // 中间颜色 - 标准橙色
+                "#FFB74D".toColorInt()  // 边缘颜色 - 浅橙色
             )
         }
         
@@ -85,10 +91,6 @@ class FloatingBallView @JvmOverloads constructor(
         canvas.drawCircle(centerX, centerY, radius, gradientPaint)
         
         // 绘制边框
-        val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-        borderPaint.style = Paint.Style.STROKE
-        borderPaint.strokeWidth = 4f
-        borderPaint.color = Color.WHITE
         canvas.drawCircle(centerX, centerY, radius, borderPaint)
         
         // 绘制时间文本

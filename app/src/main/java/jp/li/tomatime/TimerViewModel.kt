@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 
 class TimerViewModel : ViewModel() {
     companion object {
@@ -26,8 +28,10 @@ class TimerViewModel : ViewModel() {
     private val _timerState = MutableStateFlow(TimerState.POMODORO)
     val timerState: StateFlow<TimerState> = _timerState.asStateFlow()
 
-    private var timerJob: kotlinx.coroutines.Job? = null
+    private var timerJob: Job? = null
     var notificationService: NotificationService? = null
+    private var lastNotificationUpdate: Long = 0
+    private val MIN_NOTIFICATION_UPDATE_INTERVAL = 1000L // 最小通知更新间隔（毫秒）
 
     fun setPomodoroTime(timeInMillis: Long) {
         _pomodoroTime.value = timeInMillis
@@ -35,7 +39,7 @@ class TimerViewModel : ViewModel() {
             _timeLeft.value = timeInMillis
         }
         // 更新通知
-        notificationService?.showTimerNotification(_timeLeft.value, _isRunning.value)
+        updateNotificationIfNeeded()
     }
 
     fun startTimer() {
@@ -46,7 +50,7 @@ class TimerViewModel : ViewModel() {
                     delay(1000)
                     _timeLeft.value -= 1000
                     // 更新通知
-                    notificationService?.showTimerNotification(_timeLeft.value, _isRunning.value)
+                    updateNotificationIfNeeded()
                 }
                 if (_timeLeft.value <= 0) {
                     _isRunning.value = false
@@ -61,7 +65,7 @@ class TimerViewModel : ViewModel() {
         _isRunning.value = false
         timerJob?.cancel()
         // 更新通知
-        notificationService?.showTimerNotification(_timeLeft.value, _isRunning.value)
+        updateNotificationIfNeeded()
     }
 
     fun resetTimer() {
@@ -76,7 +80,7 @@ class TimerViewModel : ViewModel() {
         _timerState.value = TimerState.POMODORO
         _timeLeft.value = _pomodoroTime.value
         // 更新通知
-        notificationService?.showTimerNotification(_timeLeft.value, _isRunning.value)
+        updateNotificationIfNeeded()
     }
 
     fun switchToShortBreak() {
@@ -84,7 +88,7 @@ class TimerViewModel : ViewModel() {
         _timerState.value = TimerState.SHORT_BREAK
         _timeLeft.value = SHORT_BREAK_TIME
         // 更新通知
-        notificationService?.showTimerNotification(_timeLeft.value, _isRunning.value)
+        updateNotificationIfNeeded()
     }
 
     fun switchToLongBreak() {
@@ -92,7 +96,7 @@ class TimerViewModel : ViewModel() {
         _timerState.value = TimerState.LONG_BREAK
         _timeLeft.value = LONG_BREAK_TIME
         // 更新通知
-        notificationService?.showTimerNotification(_timeLeft.value, _isRunning.value)
+        updateNotificationIfNeeded()
     }
 
     private fun getCurrentTimerDuration(): Long {
@@ -100,6 +104,19 @@ class TimerViewModel : ViewModel() {
             TimerState.POMODORO -> _pomodoroTime.value
             TimerState.SHORT_BREAK -> SHORT_BREAK_TIME
             TimerState.LONG_BREAK -> LONG_BREAK_TIME
+        }
+    }
+    
+    /**
+     * 更新通知，但限制更新频率以提高性能
+     */
+    private fun updateNotificationIfNeeded() {
+        val now = System.currentTimeMillis()
+        // 限制通知更新频率，避免过于频繁的更新
+        if (now - lastNotificationUpdate >= MIN_NOTIFICATION_UPDATE_INTERVAL || 
+            _timeLeft.value <= 0) {
+            lastNotificationUpdate = now
+            notificationService?.showTimerNotification(_timeLeft.value, _isRunning.value)
         }
     }
 }

@@ -6,9 +6,12 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import kotlin.math.floor
+import jp.li.tomatime.utils.TimeUtils
 
 class NotificationService(private val context: Context) {
     companion object {
@@ -22,21 +25,22 @@ class NotificationService(private val context: Context) {
     }
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = "Shows timer status"
-            }
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            CHANNEL_NAME,
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = "Shows timer status"
         }
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
+//        }
     }
 
     fun showTimerNotification(timeLeft: Long, isRunning: Boolean) {
-        val formattedTime = formatTime(timeLeft)
+        val formattedTime = TimeUtils.formatTime(timeLeft)
         val title = if (isRunning) "计时进行中..." else "计时器已暂停"
         val content = "剩余时间: $formattedTime"
 
@@ -58,7 +62,10 @@ class NotificationService(private val context: Context) {
             .setOngoing(isRunning) // 如果正在运行则设为持续通知
             .build()
 
-        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+        // 检查通知权限后再发送通知
+        if (checkNotificationPermission()) {
+            NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+        }
     }
 
     fun showCompletedNotification() {
@@ -80,7 +87,10 @@ class NotificationService(private val context: Context) {
             .setAutoCancel(true)
             .build()
 
-        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+        // 检查通知权限后再发送通知
+        if (checkNotificationPermission()) {
+            NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+        }
     }
 
     fun showReadyNotification() {
@@ -102,17 +112,34 @@ class NotificationService(private val context: Context) {
             .setAutoCancel(true)
             .build()
 
-        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+        // 检查通知权限后再发送通知
+        if (checkNotificationPermission()) {
+            NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+        }
     }
 
     fun hideNotification() {
-        NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
+        // 检查通知权限后再取消通知
+        if (checkNotificationPermission()) {
+            NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
+        }
     }
 
-    private fun formatTime(timeInMillis: Long): String {
-        val totalSeconds = timeInMillis / 1000
-        val minutes = floor(totalSeconds / 60f).toInt()
-        val seconds = (totalSeconds % 60).toInt()
-        return String.format("%02d:%02d", minutes, seconds)
+    /**
+     * 检查是否有通知权限
+     */
+    private fun checkNotificationPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Android 13 及以上版本需要检查 POST_NOTIFICATIONS 权限
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            // Android 13 以下版本默认有通知权限
+            true
+        }
     }
+
+
 }

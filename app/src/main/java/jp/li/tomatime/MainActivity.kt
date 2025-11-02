@@ -10,6 +10,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -59,33 +60,50 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import jp.li.tomatime.ui.theme.TomatimeTheme
-import kotlin.math.floor
+import jp.li.tomatime.utils.TimeUtils
+import jp.li.tomatime.utils.DebounceUtils
 import kotlinx.coroutines.launch
+import androidx.core.net.toUri
 
 class MainActivity : ComponentActivity() {
     companion object {
         private const val NOTIFICATION_PERMISSION_REQUEST_CODE = 1001
         private const val OVERLAY_PERMISSION_REQUEST_CODE = 1002
     }
-    
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when (requestCode) {
+            NOTIFICATION_PERMISSION_REQUEST_CODE -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // 通知权限被授予
+                }
+            }
+        }
+    }
+
     private lateinit var viewModel: TimerViewModel
     private var floatingBallReceiver: BroadcastReceiver? = null
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        
+
         viewModel = TimerViewModel()
-        
+
         // 请求通知权限
         requestNotificationPermission()
-        
+
         // 请求悬浮球权限
         requestOverlayPermission()
-        
+
         // 注册悬浮球点击广播接收器
         registerFloatingBallReceiver()
-        
+
         setContent {
             TomatimeTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -97,7 +115,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-    
+
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
@@ -112,19 +130,32 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-    
+
     private fun requestOverlayPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (!Settings.canDrawOverlays(this)) {
-                val intent = Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:$packageName")
-                )
-                startActivityForResult(intent, OVERLAY_PERMISSION_REQUEST_CODE)
-            }
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (!Settings.canDrawOverlays(this)) {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                "package:$packageName".toUri()
+            )
+            startActivityForResult(intent, OVERLAY_PERMISSION_REQUEST_CODE)
         }
+//        }
     }
-    
+
+    /**
+     * 检查是否已获得悬浮窗权限
+     */
+    private fun checkOverlayPermission(): Boolean {
+//        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+//            Settings.canDrawOverlays(this)
+//        } else {
+//            // Android 6.0 以下版本默认有悬浮窗权限
+//            true
+//        }
+        return Settings.canDrawOverlays(this)
+    }
+
     private fun registerFloatingBallReceiver() {
         floatingBallReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
@@ -136,15 +167,15 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        
+
         val filter = IntentFilter("jp.li.tomatime.FLOATING_BALL_CLICKED")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(floatingBallReceiver, filter, RECEIVER_NOT_EXPORTED)
-        } else {
-            registerReceiver(floatingBallReceiver, filter)
-        }
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        registerReceiver(floatingBallReceiver, filter, RECEIVER_NOT_EXPORTED)
+//        } else {
+//            registerReceiver(floatingBallReceiver, filter)
+//        }
     }
-    
+
     private fun handleFloatingBallClick() {
         // 根据当前状态执行相应操作
         if (viewModel.isRunning.value) {
@@ -161,24 +192,33 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-    
+
     override fun onDestroy() {
         super.onDestroy()
         floatingBallReceiver?.let {
             unregisterReceiver(it)
         }
     }
-    
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         when (requestCode) {
             OVERLAY_PERMISSION_REQUEST_CODE -> {
                 // 用户从悬浮窗权限设置返回
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    if (Settings.canDrawOverlays(this)) {
-                        // 已获得权限
-                    }
+//                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (Settings.canDrawOverlays(this)) {
+                    // 已获得权限
+                } else {
+                    // 未获得权限
+                    Toast.makeText(this, "请授予悬浮窗权限", Toast.LENGTH_SHORT).show()
+                    val intent = Intent(
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        "package:$packageName".toUri()
+                    )
+                    startActivityForResult(intent, OVERLAY_PERMISSION_REQUEST_CODE)
+
                 }
+//                }
             }
         }
     }
@@ -187,35 +227,38 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PomodoroTimer(
+    modifier: Modifier = Modifier,
     viewModel: TimerViewModel = viewModel(),
-    modifier: Modifier = Modifier
 ) {
     val timeLeft by viewModel.timeLeft.collectAsState()
     val isRunning by viewModel.isRunning.collectAsState()
     val timerState by viewModel.timerState.collectAsState()
     var showSettings by remember { mutableStateOf(false) }
-    
+
     val context = LocalContext.current
-    
+
     LaunchedEffect(Unit) {
         // 初始化通知服务
         viewModel.notificationService = NotificationService(context)
         // 显示初始通知
         viewModel.notificationService?.showReadyNotification()
-        
+
         // 启动悬浮球服务
         val serviceIntent = Intent(context, FloatingBallService::class.java)
         serviceIntent.putExtra("timeLeft", timeLeft)
         serviceIntent.putExtra("isRunning", isRunning)
         ContextCompat.startForegroundService(context, serviceIntent)
     }
-    
+
     // 当时间或运行状态改变时更新悬浮球
     LaunchedEffect(timeLeft, isRunning) {
-        val serviceIntent = Intent(context, FloatingBallService::class.java)
-        serviceIntent.putExtra("timeLeft", timeLeft)
-        serviceIntent.putExtra("isRunning", isRunning)
-        context.startService(serviceIntent)
+        // 使用防抖动机制，避免过于频繁地更新悬浮球
+        if (DebounceUtils.shouldExecute("floating_ball_update", 1000)) {
+            val serviceIntent = Intent(context, FloatingBallService::class.java)
+            serviceIntent.putExtra("timeLeft", timeLeft)
+            serviceIntent.putExtra("isRunning", isRunning)
+            context.startService(serviceIntent)
+        }
     }
 
     if (showSettings) {
@@ -248,11 +291,11 @@ fun PomodoroTimer(
 
         // 显示时间（点击可设置专注时间）
         Text(
-            text = formatTime(timeLeft),
+            text = TimeUtils.formatTime(timeLeft),
             style = MaterialTheme.typography.displayLarge,
             modifier = Modifier
                 .padding(vertical = 32.dp)
-                .clickableNoRipple { 
+                .clickableNoRipple {
                     if (timerState == TimerState.POMODORO) {
                         showSettings = true
                     }
@@ -274,7 +317,7 @@ fun PomodoroTimer(
             ) {
                 Text(if (isRunning) "暂停" else "开始")
             }
-            
+
             Button(
                 onClick = { viewModel.resetTimer() },
                 shape = CircleShape,
@@ -291,30 +334,30 @@ fun PomodoroTimer(
             Button(
                 onClick = { viewModel.switchToPomodoro() },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (timerState == TimerState.POMODORO) 
-                        MaterialTheme.colorScheme.primary else 
+                    containerColor = if (timerState == TimerState.POMODORO)
+                        MaterialTheme.colorScheme.primary else
                         MaterialTheme.colorScheme.secondary
                 )
             ) {
                 Text("专注")
             }
-            
+
             Button(
                 onClick = { viewModel.switchToShortBreak() },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (timerState == TimerState.SHORT_BREAK) 
-                        MaterialTheme.colorScheme.primary else 
+                    containerColor = if (timerState == TimerState.SHORT_BREAK)
+                        MaterialTheme.colorScheme.primary else
                         MaterialTheme.colorScheme.secondary
                 )
             ) {
                 Text("短休息")
             }
-            
+
             Button(
                 onClick = { viewModel.switchToLongBreak() },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (timerState == TimerState.LONG_BREAK) 
-                        MaterialTheme.colorScheme.primary else 
+                    containerColor = if (timerState == TimerState.LONG_BREAK)
+                        MaterialTheme.colorScheme.primary else
                         MaterialTheme.colorScheme.secondary
                 )
             ) {
@@ -327,13 +370,13 @@ fun PomodoroTimer(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PomodoroSettings(
+    modifier: Modifier = Modifier,
     onDismiss: () -> Unit,
     onSave: (Int, Int) -> Unit,
-    currentPomodoroTime: Long,
-    modifier: Modifier = Modifier
+    currentPomodoroTime: Long
 ) {
     val sheetState = rememberModalBottomSheetState()
-    
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState
@@ -341,10 +384,10 @@ fun PomodoroSettings(
         val totalSeconds = (currentPomodoroTime / 1000).toInt()
         val currentMinutes = totalSeconds / 60
         val currentSeconds = totalSeconds % 60
-        
-        var minutes by remember { mutableStateOf(currentMinutes) }
-        var seconds by remember { mutableStateOf(currentSeconds) }
-        
+
+        var minutes by remember { androidx.compose.runtime.mutableIntStateOf(currentMinutes) }
+        var seconds by remember { androidx.compose.runtime.mutableIntStateOf(currentSeconds) }
+
         Column(
             modifier = modifier
                 .fillMaxWidth()
@@ -357,13 +400,13 @@ fun PomodoroSettings(
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(bottom = 32.dp)
             )
-            
+
             Text(
-                text = formatTime((minutes * 60 + seconds) * 1000L),
+                text = TimeUtils.formatTime((minutes * 60 + seconds) * 1000L),
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
-            
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -381,9 +424,9 @@ fun PomodoroSettings(
                         range = 1..60
                     )
                 }
-                
+
                 Text(":", style = MaterialTheme.typography.headlineMedium)
-                
+
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -395,7 +438,7 @@ fun PomodoroSettings(
                     )
                 }
             }
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -403,7 +446,7 @@ fun PomodoroSettings(
                 Button(onClick = onDismiss) {
                     Text("取消")
                 }
-                
+
                 Button(onClick = { onSave(minutes, seconds) }) {
                     Text("保存")
                 }
@@ -422,18 +465,18 @@ fun NumberPicker(
     val itemHeight = 40.dp
     val visibleItems = 3
     val halfVisibleItems = visibleItems / 2
-    
+
     // 计算初始索引（value - range.first 是相对于 range 起始的偏移量）
     val initialIndex = value - range.first
-    
+
     val listState = rememberLazyListState(
         initialFirstVisibleItemIndex = initialIndex,
         initialFirstVisibleItemScrollOffset = 0
     )
-    
+
     val coroutineScope = rememberCoroutineScope()
     val itemHeightPx = with(LocalDensity.current) { itemHeight.toPx() }
-    
+
     // 计算当前选中项的索引
     val selectedIndex by remember {
         derivedStateOf {
@@ -443,7 +486,7 @@ fun NumberPicker(
             if (offset > itemHeightPx / 2) index + 1 else index
         }
     }
-    
+
     // 当滚动停止时，吸附到最近的项并回调
     LaunchedEffect(listState.isScrollInProgress) {
         if (!listState.isScrollInProgress) {
@@ -457,7 +500,7 @@ fun NumberPicker(
             }
         }
     }
-    
+
     LazyColumn(
         state = listState,
         modifier = modifier
@@ -470,7 +513,7 @@ fun NumberPicker(
         items(range.count()) { index ->
             val itemValue = range.first + index
             val isSelected = selectedIndex == index
-            
+
             Text(
                 text = itemValue.toString(),
                 fontSize = if (isSelected) 24.sp else 16.sp,
@@ -485,13 +528,6 @@ fun NumberPicker(
     }
 }
 
-@Composable
-fun formatTime(timeInMillis: Long): String {
-    val totalSeconds = timeInMillis / 1000
-    val minutes = floor(totalSeconds / 60f).toInt()
-    val seconds = (totalSeconds % 60).toInt()
-    return String.format("%02d:%02d", minutes, seconds)
-}
 
 // 添加无波纹效果的可点击修饰符
 @Composable
