@@ -45,3 +45,4 @@ replay_pid*
 # build output directory
 app/debug
 app/release
+app/ico
