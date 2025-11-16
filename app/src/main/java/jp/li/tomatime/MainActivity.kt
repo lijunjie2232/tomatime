@@ -14,10 +14,12 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
@@ -49,7 +51,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -245,6 +250,17 @@ fun PomodoroTimer(
     val timerState by viewModel.timerState.collectAsState()
     var showSettings by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val primaryColor = MaterialTheme.colorScheme.primary
+
+    // 计算总时间（用于进度计算）
+    val totalTime = when (timerState) {
+        TimerState.POMODORO -> viewModel.getCurrentPomodoroTime()
+        TimerState.SHORT_BREAK -> TimerViewModel.SHORT_BREAK_TIME
+        TimerState.LONG_BREAK -> TimerViewModel.LONG_BREAK_TIME
+    }
+
+    // 计算进度 (0f-1f)
+    val progress = 1f - (timeLeft.toFloat() / totalTime.toFloat())
 
     LaunchedEffect(Unit) {
         // 初始化通知服务
@@ -298,18 +314,48 @@ fun PomodoroTimer(
             color = MaterialTheme.colorScheme.primary
         )
 
-        // 显示时间（点击可设置专注时间）
-        Text(
-            text = TimeUtils.formatTime(timeLeft),
-            style = MaterialTheme.typography.displayLarge,
-            modifier = Modifier
-                .padding(vertical = 32.dp)
-                .clickableNoRipple {
-                    if (timerState == TimerState.POMODORO) {
-                        showSettings = true
+        // 显示带环形进度条的时间
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.padding(vertical = 32.dp)
+        ) {
+            // 环形进度条
+            Canvas(
+                modifier = Modifier.size(200.dp)
+            ) {
+                // 背景圆环
+                drawCircle(
+                    color = Color.LightGray,
+                    style = Stroke(width = 12f),
+                    radius = size.width / 2 - 12f
+                )
+                
+                // 进度圆环
+                drawArc(
+                    color = if (timerState == TimerState.POMODORO) primaryColor 
+                           else if (timerState == TimerState.SHORT_BREAK) Color(0xFF4CAF50) 
+                           else Color(0xFF2196F3),
+                    startAngle = -90f,
+                    sweepAngle = 360 * progress,
+                    useCenter = false,
+                    style = Stroke(width = 12f, cap = StrokeCap.Round),
+                    size = Size(size.width - 24f, size.height - 24f),
+                    topLeft = androidx.compose.ui.geometry.Offset(12f, 12f)
+                )
+            }
+            
+            // 时间文本（点击可设置专注时间）
+            Text(
+                text = TimeUtils.formatTime(timeLeft),
+                style = MaterialTheme.typography.displayLarge,
+                modifier = Modifier
+                    .clickableNoRipple {
+                        if (timerState == TimerState.POMODORO) {
+                            showSettings = true
+                        }
                     }
-                }
-        )
+            )
+        }
 
         // 控制按钮
         Row(

@@ -99,6 +99,10 @@ class TimerViewModel : ViewModel() {
         updateNotificationIfNeeded()
     }
 
+    fun getCurrentPomodoroTime(): Long {
+        return _pomodoroTime.value
+    }
+
     private fun getCurrentTimerDuration(): Long {
         return when (_timerState.value) {
             TimerState.POMODORO -> _pomodoroTime.value
