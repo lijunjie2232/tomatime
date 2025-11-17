@@ -225,7 +225,8 @@ class MainActivity : ComponentActivity() {
                 } else {
                     // Permission not granted
                     // 未获得权限
-                    Toast.makeText(this, R.string.overlay_permission_required, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.overlay_permission_required, Toast.LENGTH_SHORT)
+                        .show()
                     val intent = Intent(
                         Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                         "package:$packageName".toUri()
@@ -301,9 +302,9 @@ fun PomodoroTimer(
     Column(
         modifier = modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // 显示当前状态
+        // 标题靠上显示
         Text(
             text = when (timerState) {
                 TimerState.POMODORO -> context.getString(R.string.focus_time)
@@ -311,112 +312,128 @@ fun PomodoroTimer(
                 TimerState.LONG_BREAK -> context.getString(R.string.long_break)
             },
             style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .padding(top = 32.dp)
+                .align(Alignment.CenterHorizontally)
         )
 
-        // 显示带环形进度条的时间
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.padding(vertical = 32.dp)
+        // 中间部分：时间和环形进度条
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.weight(1f)
         ) {
-            // 环形进度条
-            Canvas(
-                modifier = Modifier.size(200.dp)
+            // 显示带环形进度条的时间
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.padding(vertical = 32.dp)
             ) {
-                // 背景圆环
-                drawCircle(
-                    color = Color.LightGray,
-                    style = Stroke(width = 12f),
-                    radius = size.width / 2 - 12f
-                )
-                
-                // 进度圆环
-                drawArc(
-                    color = if (timerState == TimerState.POMODORO) primaryColor 
-                           else if (timerState == TimerState.SHORT_BREAK) Color(0xFF4CAF50) 
-                           else Color(0xFF2196F3),
-                    startAngle = -90f,
-                    sweepAngle = 360 * progress,
-                    useCenter = false,
-                    style = Stroke(width = 12f, cap = StrokeCap.Round),
-                    size = Size(size.width - 24f, size.height - 24f),
-                    topLeft = androidx.compose.ui.geometry.Offset(12f, 12f)
-                )
-            }
-            
-            // 时间文本（点击可设置专注时间）
-            Text(
-                text = TimeUtils.formatTime(timeLeft),
-                style = MaterialTheme.typography.displayLarge,
-                modifier = Modifier
-                    .clickableNoRipple {
-                        if (timerState == TimerState.POMODORO) {
-                            showSettings = true
+                // 环形进度条 - 加大加粗
+                Canvas(
+                    modifier = Modifier.size(300.dp)
+                ) {
+                    // 背景圆环 - 加粗
+                    drawCircle(
+                        color = Color.LightGray,
+                        style = Stroke(width = 24f),
+                        radius = size.width / 2 - 24f
+                    )
+
+                    // 进度圆环 - 加粗
+                    drawArc(
+                        color = if (timerState == TimerState.POMODORO) primaryColor
+                        else if (timerState == TimerState.SHORT_BREAK) Color(0xFF4CAF50)
+                        else Color(0xFF2196F3),
+                        startAngle = -90f,
+                        sweepAngle = 360 * progress,
+                        useCenter = false,
+                        style = Stroke(width = 24f, cap = StrokeCap.Round),
+                        size = Size(size.width - 48f, size.height - 48f),
+                        topLeft = androidx.compose.ui.geometry.Offset(24f, 24f)
+                    )
+                }
+
+                // 时间文本（点击可设置专注时间）
+                Text(
+                    text = TimeUtils.formatTime(timeLeft),
+                    style = MaterialTheme.typography.displayLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .clickableNoRipple {
+                            if (timerState == TimerState.POMODORO) {
+                                showSettings = true
+                            }
                         }
-                    }
-            )
-        }
-
-        // 控制按钮
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(vertical = 16.dp)
-        ) {
-            Button(
-                onClick = { if (isRunning) viewModel.pauseTimer() else viewModel.startTimer() },
-                shape = CircleShape,
-                modifier = Modifier.size(128.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isRunning) Color(0xFFE57373) else MaterialTheme.colorScheme.primary
                 )
-            ) {
-                Text(if (isRunning) context.getString(R.string.pause) else context.getString(R.string.start))
-            }
-
-            Button(
-                onClick = { viewModel.resetTimer() },
-                shape = CircleShape,
-                modifier = Modifier.size(128.dp)
-            ) {
-                Text(context.getString(R.string.reset))
             }
         }
 
-        // 状态切换按钮
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        // 底部按钮区域
+        Column(
+            modifier = Modifier
+                .padding(bottom = 32.dp)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Button(
-                onClick = { viewModel.switchToPomodoro() },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (timerState == TimerState.POMODORO)
-                        MaterialTheme.colorScheme.primary else
-                        MaterialTheme.colorScheme.secondary
-                )
+            // 状态切换按钮
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(top = 16.dp)
             ) {
-                Text(context.getString(R.string.focus))
+                Button(
+                    onClick = { viewModel.switchToPomodoro() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (timerState == TimerState.POMODORO)
+                            MaterialTheme.colorScheme.primary else
+                            MaterialTheme.colorScheme.secondary
+                    )
+                ) {
+                    Text(context.getString(R.string.focus))
+                }
+
+                Button(
+                    onClick = { viewModel.switchToShortBreak() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (timerState == TimerState.SHORT_BREAK)
+                            MaterialTheme.colorScheme.primary else
+                            MaterialTheme.colorScheme.secondary
+                )
+                ) {
+                    Text(context.getString(R.string.short_break_button))
+                }
+
+                Button(
+                    onClick = { viewModel.switchToLongBreak() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (timerState == TimerState.LONG_BREAK)
+                            MaterialTheme.colorScheme.primary else
+                            MaterialTheme.colorScheme.secondary
+                )
+                ) {
+                    Text(context.getString(R.string.long_break_button))
+                }
             }
 
-            Button(
-                onClick = { viewModel.switchToShortBreak() },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (timerState == TimerState.SHORT_BREAK)
-                        MaterialTheme.colorScheme.primary else
-                        MaterialTheme.colorScheme.secondary
-                )
+            // 控制按钮
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(top = 16.dp)
             ) {
-                Text(context.getString(R.string.short_break_button))
-            }
+                Button(
+                    onClick = { if (isRunning) viewModel.pauseTimer() else viewModel.startTimer() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isRunning) Color(0xFFE57373) else MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text(if (isRunning) context.getString(R.string.pause) else context.getString(R.string.start))
+                }
 
-            Button(
-                onClick = { viewModel.switchToLongBreak() },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (timerState == TimerState.LONG_BREAK)
-                        MaterialTheme.colorScheme.primary else
-                        MaterialTheme.colorScheme.secondary
-                )
-            ) {
-                Text(context.getString(R.string.long_break_button))
+                Button(
+                    onClick = { viewModel.resetTimer() }
+                ) {
+                    Text(context.getString(R.string.reset))
+                }
             }
         }
     }
@@ -473,7 +490,10 @@ fun PomodoroSettings(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(context.getString(R.string.minutes), modifier = Modifier.padding(bottom = 8.dp))
+                    Text(
+                        context.getString(R.string.minutes),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
                     NumberPicker(
                         value = minutes,
                         onValueChange = { minutes = it },
@@ -486,7 +506,10 @@ fun PomodoroSettings(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(context.getString(R.string.seconds), modifier = Modifier.padding(bottom = 8.dp))
+                    Text(
+                        context.getString(R.string.seconds),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
                     NumberPicker(
                         value = seconds,
                         onValueChange = { seconds = it },
