@@ -52,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -263,6 +264,36 @@ fun PomodoroTimer(
     // 计算进度 (0f-1f)
     val progress = 1f - (timeLeft.toFloat() / totalTime.toFloat())
 
+    // 定义渐变色
+    val progressGradientBrush = when (timerState) {
+        TimerState.POMODORO -> Brush.sweepGradient(
+            listOf(
+                Color(0xFFF44336), // 红色
+                Color(0xFFFF9800), // 橙色
+                Color(0xFFFFEB3B), // 黄色
+                Color(0xFFE91E63), // 粉红色
+                Color(0xFFF44336), // 红色
+//                Color(0xFFE91E63)  // 回到粉红色形成闭环
+            )
+        )
+        TimerState.SHORT_BREAK -> Brush.sweepGradient(
+            listOf(
+                Color(0xFF4CAF50), // 绿色
+                Color(0xFF8BC34A), // 浅绿色
+                Color(0xFFCDDC39), // 青绿色
+                Color(0xFF4CAF50)  // 回到绿色形成闭环
+            )
+        )
+        TimerState.LONG_BREAK -> Brush.sweepGradient(
+            listOf(
+                Color(0xFF2196F3), // 蓝色
+                Color(0xFF03DAC6), // 青色
+                Color(0xFFBB86FC), // 紫色
+                Color(0xFF2196F3)  // 回到蓝色形成闭环
+            )
+        )
+    }
+
     LaunchedEffect(Unit) {
         // 初始化通知服务
         viewModel.notificationService = NotificationService(context)
@@ -340,11 +371,9 @@ fun PomodoroTimer(
                         radius = size.width / 2 - 24f
                     )
 
-                    // 进度圆环 - 加粗
+                    // 进度圆环 - 加粗并使用渐变色
                     drawArc(
-                        color = if (timerState == TimerState.POMODORO) primaryColor
-                        else if (timerState == TimerState.SHORT_BREAK) Color(0xFF4CAF50)
-                        else Color(0xFF2196F3),
+                        brush = progressGradientBrush,
                         startAngle = -90f,
                         sweepAngle = 360 * progress,
                         useCenter = false,
