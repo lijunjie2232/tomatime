@@ -35,6 +35,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.res.painterResource
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -335,19 +340,54 @@ fun PomodoroTimer(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // 标题靠上显示
-        Text(
-            text = when (timerState) {
-                TimerState.POMODORO -> context.getString(R.string.focus_time)
-                TimerState.SHORT_BREAK -> context.getString(R.string.short_break)
-                TimerState.LONG_BREAK -> context.getString(R.string.long_break)
-            },
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary,
+        // 顶部标题和关闭按钮行
+        Row(
             modifier = Modifier
-                .padding(top = 32.dp)
-                .align(Alignment.CenterHorizontally)
-        )
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 空白占位符保持居中对齐
+            Box(modifier = Modifier.size(48.dp))
+
+            // 标题居中显示
+            Text(
+                text = when (timerState) {
+                    TimerState.POMODORO -> context.getString(R.string.focus_time)
+                    TimerState.SHORT_BREAK -> context.getString(R.string.short_break)
+                    TimerState.LONG_BREAK -> context.getString(R.string.long_break)
+                },
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            // 关闭按钮
+            IconButton(
+                onClick = {
+                    // 隐藏通知
+                    viewModel.notificationService?.hideNotification()
+                    
+                    // 停止悬浮球服务
+                    val floatingBallServiceIntent = Intent(context, FloatingBallService::class.java)
+                    context.stopService(floatingBallServiceIntent)
+                    
+                    // 完全退出应用程序
+                    if (context is MainActivity) {
+                        context.finishAffinity()
+                    }
+                },
+                modifier = Modifier
+                    .padding(end = 8.dp)
+                    .size(48.dp)
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.mode_off_on_24px),
+                    contentDescription = "关闭应用",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
 
         // 中间部分：时间和环形进度条
         Column(
